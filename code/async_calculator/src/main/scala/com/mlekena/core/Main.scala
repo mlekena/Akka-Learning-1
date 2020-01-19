@@ -12,6 +12,14 @@ class Main {
 
 }
 
+object CalcParser {
+  def mmParse(in: String): List[MathMember] = {
+    List[MathMember]()
+  }
+
+}
+
+
 object CalculatorMain {
   final case class MathToCompute(computation: List[MathMember])
 
@@ -38,7 +46,10 @@ object CalculatorMain {
 object Adder {
   final case class Calculate(lmm: List[MathMember])
 
-  def apply(): Behavior[Calculate] = ???
+  def apply(): Behavior[Calculate] = Behaviors.receive { (context, comp) =>
+    context.log.debug(comp.lmm.mkString)
+    Behaviors.same
+  }
 }
 
 object Subtractor {
