@@ -3,6 +3,9 @@ package com.mlekena.core
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 
+import scala.Int
+import scala.annotation.tailrec
+
 trait MathMember
 final case class Number(value: Int) extends MathMember
 final case class Plus() extends MathMember
@@ -13,8 +16,32 @@ class Main {
 }
 
 object CalcParser {
+  val aPlus = "+"
+  val aMinus = "-"
+  val digitR = "^([0-9])*\\d".r
+
+  /**
+   * This function is a trivial parser that reads lisp like math expressions of the form
+   * Op Num Num
+   * @param in
+   * @return
+   */
   def mmParse(in: String): List[MathMember] = {
-    List[MathMember]()
+    val charList = in.split(" ")
+    def parsing(list: List[String]): List[MathMember] = {
+      list match {
+        case Nil => List[MathMember]()
+        case plus :: rest if plus == aPlus => Plus() :: parsing(rest)
+        case minus :: rest if minus == aMinus => Minus() :: parsing(rest)
+        case chr :: rest => {
+          digitR findFirstIn(chr) match {
+            case Some(str) if str == chr => Number(str.toInt) :: parsing(rest)
+            case None => Nil
+          }
+        }
+      }
+    }
+    parsing(charList.toList)
   }
 
 }
