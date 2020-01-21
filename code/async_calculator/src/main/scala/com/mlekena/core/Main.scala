@@ -1,5 +1,6 @@
 package com.mlekena.core
 
+import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 
@@ -54,24 +55,33 @@ object CalculatorMain {
     context =>
       val anAdder = context.spawn(Adder(), "Adder")
       val aSubtractor = context.spawn(Subtractor(), "Subtractor")
-
+      val calcResolver = context.spawn(CalculationResolver(), "CalcResolver")
       Behaviors.receiveMessage{message =>
         message.computation match {
           case Nil => {
             context.log.debug("No Computation passed.")
             Behaviors.stopped
           }
-          case Plus() :: rest => anAdder ! Adder.Calculate(rest); Behaviors.same
-          case Minus() :: rest => aSubtractor ! Subtractor.Calculate(rest); Behaviors.same
+          case Plus() :: rest => anAdder ! Adder.Calculate(rest, calcResolver); Behaviors.same
+          case Minus() :: rest => aSubtractor ! Subtractor.Calculate(rest, calcResolver); Behaviors.same
           case Number(v) :: Nil => {context.log.debug(v.toString); Behaviors.stopped}
           case _ :: _ => {context.log.debug("FAILED CALCULATION ENTRY!"); Behaviors.stopped}
         }
       }
   }
 }
+object CalculationResolver {
+  final case class CompleteCalculation(result: Int)
+
+  def apply(): Behavior[CompleteCalculation] = Behaviors.receive {(context, res) => {
+    context.log.debug(res.result.toString)
+    Behaviors.same
+  }}
+}
+
 
 object Adder {
-  final case class Calculate(lmm: List[MathMember])
+  final case class Calculate(lmm: List[MathMember], resolver: ActorRef[CalculationResolver.CompleteCalculation])
 
   def apply(): Behavior[Calculate] = Behaviors.receive { (context, comp) =>
     context.log.debug(comp.lmm.mkString)
@@ -80,7 +90,7 @@ object Adder {
 }
 
 object Subtractor {
-  final case class Calculate(lmm: List[MathMember])
+  final case class Calculate(lmm: List[MathMember], resolver: ActorRef[CalculationResolver.CompleteCalculation])
 
   def apply(): Behavior[Calculate] = ???
 }
